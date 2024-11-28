@@ -3,4 +3,4 @@
 echo "Content-type: text/html"
 echo ""
 
-echo "<html><head><title>Test</title></head><body>"
+echo "<p>Test</p>"
