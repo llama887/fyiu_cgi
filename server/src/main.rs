@@ -1,14 +1,18 @@
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use std::env;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::io::{Read, Write};
 
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
-    let cgi_path = format!("./cgi{}", req.uri().path());
+    // Build the CGI script path relative to the `server/src/main.rs` directory
+    let mut cgi_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    cgi_path.push("../cgi");
+    cgi_path.push(req.uri().path().trim_start_matches('/'));
 
     // Check if the CGI script exists
-    if !std::path::Path::new(&cgi_path).exists() {
+    if !cgi_path.exists() {
         return Ok(Response::builder()
             .status(404)
             .body(Body::from("CGI script not found"))
@@ -31,7 +35,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     }
 
     // Set up the CGI script command
-    let mut cmd = Command::new(&cgi_path);
+    let mut cmd = Command::new(cgi_path);
     cmd.envs(env_vars.iter().map(|(k, v)| (k.as_str(), v.as_str())));
 
     let mut child = if req.method() == "POST" {
