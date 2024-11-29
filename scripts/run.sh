@@ -20,23 +20,38 @@ if ! ([ -e "$TOML_FILE" ] && [ -f "$TOML_FILE" ]); then
   exit 1
 fi
 
-# Extract the server directory
+# Extract server directory and run command
 server_directory=$(parse_toml_key "server.directory")
-if [ -z "$server_directory" ]; then
-  echo "Error: server.directory is not defined in $TOML_FILE"
+run_command=$(parse_toml_key "server.run_command")
+
+if [ -z "$server_directory" ] || [ -z "$run_command" ]; then
+  echo "Error: server.directory or server.run_command is not defined in $TOML_FILE"
   exit 1
 fi
 
-# Navigate to the server directory
+# Resolve the absolute path to the server directory
 server_path=$(realpath "$SCRIPT_DIR/../$server_directory")
+
+# Verify server directory exists
+if [ ! -d "$server_path" ]; then
+  echo "Error: Server directory does not exist: $server_path"
+  exit 1
+fi
+
+# Navigate to the server directory and run the project
+echo "Running the project in $server_path..."
 cd "$server_path" || {
-  echo "Error: Server directory not found: $server_path"
+  echo "Error: Failed to navigate to server directory: $server_path"
   exit 1
 }
 
-# Run the project
-echo "Running the project..."
-if ! cargo run; then
-  echo "Run failed!"
+# Execute the run command
+eval "$run_command" || {
+  echo "Error: Run command failed: $run_command"
   exit 1
-fi
+}
+
+# Return to the original directory
+cd "$ORIGINAL_DIR"
+
+echo "Run completed successfully!"

@@ -20,6 +20,40 @@ if ! ([ -e "$TOML_FILE" ] && [ -f "$TOML_FILE" ]); then
   exit 1
 fi
 
+# Extract server directory and commands
+server_directory=$(parse_toml_key "server.directory")
+build_command=$(parse_toml_key "server.build_command")
+
+if [ -z "$server_directory" ] || [ -z "$build_command" ]; then
+  echo "Error: server.directory or server.build_command is not defined in $TOML_FILE"
+  exit 1
+fi
+
+# Resolve the absolute path to the server directory
+server_path=$(realpath "$SCRIPT_DIR/../$server_directory")
+
+# Verify server directory exists
+if [ ! -d "$server_path" ]; then
+  echo "Error: Server directory does not exist: $server_path"
+  exit 1
+fi
+
+# Navigate to the server directory and build the server
+echo "Building the server in $server_path..."
+cd "$server_path" || {
+  echo "Error: Failed to navigate to server directory: $server_path"
+  exit 1
+}
+
+# Execute the build command
+eval "$build_command" || {
+  echo "Error: Server build command failed: $build_command"
+  exit 1
+}
+
+# Return to the original directory
+cd "$ORIGINAL_DIR"
+
 # Extract CGI and bin directories
 cgi_directory=$(parse_toml_key "endpoints.cgi_directory")
 bin_directory=$(parse_toml_key "endpoints.bin_directory")
@@ -28,6 +62,8 @@ if [ -z "$cgi_directory" ] || [ -z "$bin_directory" ]; then
   echo "Error: CGI or BIN directory not defined in $TOML_FILE"
   exit 1
 fi
+
+echo "Building files in $cgi_directory and placing binaries in $bin_directory"
 
 # Resolve CGI and BIN directories as absolute paths
 cgi_path=$(realpath "$SCRIPT_DIR/../$cgi_directory")
