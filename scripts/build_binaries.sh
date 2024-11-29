@@ -29,8 +29,6 @@ if [ -z "$cgi_directory" ] || [ -z "$bin_directory" ]; then
   exit 1
 fi
 
-echo "Building files in $cgi_directory and placing binaries in $bin_directory"
-
 # Resolve CGI and BIN directories as absolute paths
 cgi_path=$(realpath "$SCRIPT_DIR/../$cgi_directory")
 bin_path=$(realpath "$SCRIPT_DIR/../$bin_directory")
@@ -70,6 +68,7 @@ shopt -s nullglob
 for file in *.*; do
     file_extension="${file##*.}"
     file_name="${file%.*}"
+    output_file="$bin_path/$file_name.cgi"
 
     # Get the build instruction for the file's extension
     build_instruction=$(get_build_instruction "$file_extension")
@@ -80,33 +79,37 @@ for file in *.*; do
         continue
     fi
 
-    if [[ "$build_instruction" == "\$COPY\$" ]]; then
-        # Handle copying case
-        echo "Copying $file to $bin_path/$file_name.cgi"
-        cp "$file" "$bin_path/$file_name.cgi" || {
-            echo "Error: Failed to copy $file"
-            exit 1
-        }
-    else
-        # Execute the build instruction
-        echo "Executing build instruction for $file"
-        command=${build_instruction//\$FILE_NAME\$/$file_name}
-        eval "$command" || {
-            echo "Error: Failed to build $file"
-            exit 1
-        }
+    # Check if the file needs rebuilding
+    if [ ! -e "$output_file" ] || [ "$file" -nt "$output_file" ]; then
+        echo "Building or copying $file..."
 
-        # Move the resulting file to the bin directory with a .cgi extension
-        if [ -f "$file_name" ]; then
-            echo "Moving $file_name to $bin_path/$file_name.cgi"
-            mv "$file_name" "$bin_path/$file_name.cgi" || {
-                echo "Error: Failed to move $file_name to $bin_path"
+        if [[ "$build_instruction" == "\$COPY\$" ]]; then
+            # Handle copying case
+            cp "$file" "$output_file" || {
+                echo "Error: Failed to copy $file"
                 exit 1
             }
         else
-            echo "Error: Build did not produce an expected output for $file"
-            exit 1
+            # Execute the build instruction
+            command=${build_instruction//\$FILE_NAME\$/$file_name}
+            eval "$command" || {
+                echo "Error: Failed to build $file"
+                exit 1
+            }
+
+            # Move the resulting file to the bin directory with a .cgi extension
+            if [ -f "$file_name" ]; then
+                mv "$file_name" "$output_file" || {
+                    echo "Error: Failed to move $file_name to $bin_path"
+                    exit 1
+                }
+            else
+                echo "Error: Build did not produce an expected output for $file"
+                exit 1
+            fi
         fi
+    else
+        echo "Skipping $file (already up-to-date)"
     fi
 done
 
