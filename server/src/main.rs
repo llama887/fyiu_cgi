@@ -12,7 +12,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     html_base_path.push("../html");
     
     let mut cgi_base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    cgi_base_path.push("../cgi");
+    cgi_base_path.push("../bin");
 
     // Determine the requested path
     let mut requested_path = req.uri().path().trim_start_matches('/').to_string();
