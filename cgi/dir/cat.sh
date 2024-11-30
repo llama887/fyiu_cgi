@@ -3,4 +3,4 @@
 echo "Content-type: text/html"
 echo ""
 
-echo "$(cat ../html/index.html)"
+echo "$(cat ../html/main.html)"

@@ -4,22 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="../static/htmx.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../static/van-1.5.2.min.js"></script>
     <title>HTMX Navigation Example</title>
 </head>
 
-<body>
+<body class="flex flex-col min-h-screen bg-neutral-900 text-slate-50">
     <!-- Header -->
-    <div hx-get="/partials/header.html" hx-trigger="load" hx-swap="outerHTML"></div>
-
-    <!-- Main Content -->
-    <div id="main-content" hx-swap="innerHTML">
-        <h1>Welcome to the Home Page</h1>
-        <p>Click the links in the navigation bar to load new content.</p>
+    <header class="border-0 border-b border-neutral-700">
+        <p>fyiu</p>
+    </header>
+    <div class="flex-1 flex flex-row justify-between">
+        <!-- Main Content -->
+        <main class="bg-neutral-800 basis-5/6 grow pl-5" id="main-content" hx-swap="innerHTML">
+            <h1>Welcome to the Home Page</h1>
+            <p>Click the links in the navigation bar to load new content.</p>
+        </main>
+        <!-- Navigation Bar -->
+        <nav class="flex flex-col basis-1/6 border-0 border-l border-neutral-700 pl-3 pr-5 text-sm">
+            <a href="/static/index.html" class="hover:bg-neutral-800" hx-get="/static/index.html"
+                hx-target="#main-content" hx-swap="innerHTML">Home</a>
+            <a href="/static/about.html" class="hover:bg-neutral-800" hx-get="/static/about.html"
+                hx-target="#main-content" hx-swap="innerHTML">About</a>
+            <a href="/static/contact.html" class="hover:bg-neutral-800" hx-get="/static/contact.html"
+                hx-target="#main-content" hx-swap="innerHTML">Contact</a>
+            <details>
+                <summary>
+                    <a href="/static/contact.html" class="hover:bg-neutral-800" hx-get="/static/contact.html"
+                        hx-target="#main-content" hx-swap="innerHTML">Projects</a>
+                </summary>
+                <div class="flex flex-row justify-between">
+                    <div class="basis-3/12"></div>
+                    <p class="basis-9/12">Coming Soon..</p>
+                </div>
+            </details>
+            <details>
+                <summary>
+                    <a href="/static/contact.html" class="hover:bg-neutral-800" hx-get="/static/contact.html"
+                        hx-target="#main-content" hx-swap="innerHTML">Posts</a>
+                </summary>
+                <div class="flex flex-row justify-between">
+                    <div class="basis-3/12"></div>
+                    <p class="basis-9/12">Coming Soon..</p>
+                </div>
+            </details>
+        </nav>
     </div>
 
     <!-- Footer -->
-    <div hx-get="/partials/footer.html" hx-trigger="load" hx-swap="outerHTML"></div>
+    <footer>
+        <p>© 2024 Your Website</p>
+    </footer>
 </body>
 
 </html>
