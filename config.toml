@@ -10,7 +10,7 @@ cgi_directory = "cgi"
 [build_instructions]
 # $FILE_NAME$ is the name of the file before the file extension
 # $COPY$ is used for copying binary files directly into the bin directory
-go = "go build -o $FILE_NAME$ $FILE_NAME$.go"
-cpp = "g++ -o $FILE_NAME$ $FILE_NAME$.cpp"
-c = "gcc -o $FILE_NAME$ $FILE_NAME$.c"
+go = "go build $FILE_NAME$.go"
+cpp = "g++ $FILE_NAME$.cpp -o $FILE_NAME$"
+c = "gcc $FILE_NAME$.c -o $FILE_NAME$"
 sh = "$COPY$"

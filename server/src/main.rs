@@ -17,9 +17,9 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     // Determine the requested path
     let mut requested_path = req.uri().path().trim_start_matches('/').to_string();
 
-    // Default to `index.html` if the requested path is `/` or a directory
+    // Default to `main.html` if the requested path is `/` or a directory
     if requested_path.is_empty() || requested_path.ends_with('/') {
-        requested_path.push_str("index.html");
+        requested_path.push_str("main.html");
     }
 
     // Full paths to the requested files in `html` and `cgi`

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/htmx.org"></script>
+    <title>HTMX Navigation Example</title>
+</head>
+
+<body>
+    <!-- Header -->
+    <div hx-get="/partials/header.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+    <!-- Main Content -->
+    <div id="main-content" hx-swap="innerHTML">
+        <h1>Welcome to the Home Page</h1>
+        <p>Click the links in the navigation bar to load new content.</p>
+    </div>
+
+    <!-- Footer -->
+    <div hx-get="/partials/footer.html" hx-trigger="load" hx-swap="outerHTML"></div>
+</body>
+
+</html>
