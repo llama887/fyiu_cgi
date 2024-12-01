@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,132 +10,109 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"bufio"
 )
 
-// Path to the CGI scripts directory
-const cgiDir = "./cgi"
+const (
+	publicDir = "../public" // Directory for static files
+	cgiDir    = "../bin"    // Directory for CGI scripts
+)
 
-func executeCGI(w http.ResponseWriter, r *http.Request) {
-    // Construct the path to the CGI script based on the URL
-    cgiPath := filepath.Join(cgiDir, r.URL.Path)
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	// Sanitize the requested path
+	requestedPath := r.URL.Path
+	if requestedPath == "/" || strings.HasSuffix(requestedPath, "/") {
+		requestedPath = filepath.Join(publicDir, "main.html")
+	} else {
+		requestedPath = filepath.Join(publicDir, requestedPath)
+	}
 
-    // Ensure the requested CGI script exists
-    if _, err := os.Stat(cgiPath); os.IsNotExist(err) {
-        http.Error(w, "CGI script not found", http.StatusNotFound)
-        return
-    }
+	// Check if the requested path is a valid file in the public directory
+	sanitizedPath, err := filepath.Abs(requestedPath)
+	if err != nil || !strings.HasPrefix(sanitizedPath, filepath.Clean(publicDir)) {
+		http.Error(w, "Access forbidden", http.StatusForbidden)
+		return
+	}
 
-    // Prepare the environment variables for the CGI script
-    env := os.Environ()
-    env = append(env, fmt.Sprintf("REQUEST_METHOD=%s", r.Method))
-    env = append(env, fmt.Sprintf("QUERY_STRING=%s", r.URL.Query().Encode()))
+	if _, err := os.Stat(sanitizedPath); err == nil {
+		// Serve static files if the file exists
+		http.ServeFile(w, r, sanitizedPath)
+		return
+	}
 
-    // Handle POST request: pass form data to stdin of the CGI script
-    if r.Method == http.MethodPost {
-        if err := r.ParseForm(); err != nil {
-            http.Error(w, "Failed to parse form data", http.StatusBadRequest)
-            return
-        }
-        env = append(env, fmt.Sprintf("CONTENT_LENGTH=%d", r.ContentLength))
-        env = append(env, fmt.Sprintf("CONTENT_TYPE=%s", r.Header.Get("Content-Type")))
-    }
+	// Handle CGI scripts if the file is not found in the public directory
+	cgiPath := filepath.Join(cgiDir, r.URL.Path)
+	if _, err := os.Stat(cgiPath); err == nil {
+		executeCGI(w, r, cgiPath)
+		return
+	}
 
-    // Set up the CGI script command
-    cmd := exec.Command(cgiPath)
-    cmd.Env = env
-
-    // If it's a POST request, pipe the request body into the CGI script's stdin
-    if r.Method == http.MethodPost {
-        stdin, err := cmd.StdinPipe()
-        if err != nil {
-            http.Error(w, fmt.Sprintf("Failed to open stdin pipe: %v", err), http.StatusInternalServerError)
-            return
-        }
-        defer stdin.Close()
-
-        // Read the body from the HTTP request and write it to stdin of the CGI script
-        body, err := ioutil.ReadAll(r.Body)
-        if err != nil {
-            http.Error(w, "Failed to read body", http.StatusInternalServerError)
-            return
-        }
-        stdin.Write(body)
-    }
-
-    // Get the output of the CGI script and write it back to the HTTP response
-    stdout, err := cmd.StdoutPipe()
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Failed to get stdout pipe: %v", err), http.StatusInternalServerError)
-        return
-    }
-
-    stderr, err := cmd.StderrPipe()
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Failed to get stderr pipe: %v", err), http.StatusInternalServerError)
-        return
-    }
-
-    // Start the CGI script
-    if err := cmd.Start(); err != nil {
-        http.Error(w, fmt.Sprintf("Failed to start CGI script: %v", err), http.StatusInternalServerError)
-        return
-    }
-
-    // Read the headers from the CGI script output
-    reader := bufio.NewReader(stdout)
-    for {
-        line, err := reader.ReadString('\n')
-        if err != nil {
-            if err == io.EOF {
-                break
-            }
-            http.Error(w, fmt.Sprintf("Failed to read CGI output: %v", err), http.StatusInternalServerError)
-            return
-        }
-        line = strings.TrimSpace(line)
-        if line == "" {
-            break
-        }
-        parts := strings.SplitN(line, ": ", 2)
-        if len(parts) != 2 {
-            http.Error(w, fmt.Sprintf("Invalid header line: %s", line), http.StatusInternalServerError)
-            return
-        }
-        w.Header().Set(parts[0], parts[1])
-    }
-
-    // Copy the remaining output to the HTTP response
-    _, err = io.Copy(w, reader)
-    if err != nil {
-        http.Error(w, fmt.Sprintf("Failed to copy CGI output: %v", err), http.StatusInternalServerError)
-        return
-    }
-
-    // Wait for the CGI script to finish execution
-    if err := cmd.Wait(); err != nil {
-        output, _ := ioutil.ReadAll(stderr)
-        http.Error(w, fmt.Sprintf("CGI script error: %v\n%s", err, output), http.StatusInternalServerError)
-        return
-    }
+	// If neither a static file nor a CGI script is found, return 404
+	http.Error(w, "Not found", http.StatusNotFound)
 }
 
+func executeCGI(w http.ResponseWriter, r *http.Request, cgiPath string) {
+	// Prepare the environment variables for the CGI script
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("REQUEST_METHOD=%s", r.Method))
+	env = append(env, fmt.Sprintf("QUERY_STRING=%s", r.URL.Query().Encode()))
 
-// Static file server to serve the CGI folder (optional)
-func serveStaticFiles() {
-	http.Handle("/cgi/", http.StripPrefix("/cgi/", http.FileServer(http.Dir(cgiDir))))
+	// Handle POST request: pass form data to stdin of the CGI script
+	var input io.Reader
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+		env = append(env, fmt.Sprintf("CONTENT_LENGTH=%d", r.ContentLength))
+		env = append(env, fmt.Sprintf("CONTENT_TYPE=%s", r.Header.Get("Content-Type")))
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read body", http.StatusInternalServerError)
+			return
+		}
+		input = bytes.NewReader(body)
+	}
+
+	// Set up the CGI script command
+	cmd := exec.Command(cgiPath)
+	cmd.Env = env
+	if input != nil {
+		cmd.Stdin = input
+	}
+
+	// Capture the output of the CGI script
+	output, err := cmd.Output()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("CGI script error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Parse and write CGI headers
+	outputParts := bytes.SplitN(output, []byte("\n\n"), 2)
+	if len(outputParts) != 2 {
+		http.Error(w, "Invalid CGI response", http.StatusInternalServerError)
+		return
+	}
+
+	headers := string(outputParts[0])
+	for _, line := range strings.Split(headers, "\n") {
+		parts := strings.SplitN(line, ": ", 2)
+		if len(parts) == 2 {
+			w.Header().Set(parts[0], parts[1])
+		}
+	}
+
+	// Write the CGI body to the HTTP response
+	w.Write(outputParts[1])
 }
 
 func main() {
-	// Serve static files from the CGI folder (optional)
-	serveStaticFiles()
+	// Create an HTTP server and route all requests to handleRequest
+	http.HandleFunc("/", handleRequest)
 
-	// Route all requests to the CGI handler
-	http.HandleFunc("/", executeCGI)
-
-	// Start the server on port 8080
-	fmt.Println("Starting CGI server on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Println("Error starting server:", err)
+	addr := ":8080"
+	fmt.Printf("Starting server on %s\n", addr)
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		fmt.Printf("Server error: %v\n", err)
 	}
 }

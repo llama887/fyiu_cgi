@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>HTMX Navigation Example</title>
+</head>
+
+<body class="flex flex-col min-h-screen bg-neutral-900 text-slate-50">
+    <!-- Header -->
+    <header class="border-0 border-b border-neutral-700">
+        <p>fyiu</p>
+    </header>
+    <img src="./icons/bash.svg" alt="icon test">
+    <div class="flex-1 flex flex-row justify-between">
+        <!-- Main Content -->
+        <main class="bg-neutral-800 basis-5/6 grow pl-5" id="main-content" hx-swap="innerHTML">
+            <h1>Welcome to the Home Page</h1>
+            <p>Click the links in the navigation bar to load new content.</p>
+        </main>
+        <!-- Navigation Bar -->
+        <nav class="flex flex-col basis-1/6 border-0 border-l border-neutral-700 text-xs"
+            hx-get="/jinja_generated_html/navbar_links.html" hx-trigger="load" hx-swap="innerHTML">
+        </nav>
+    </div>
+
+    <!-- Footer -->
+    <footer class="flex flex-row">
+        <p>© 2024 Your Website</p>
+    </footer>
+</body>
+
+</html>

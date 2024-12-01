@@ -14,3 +14,9 @@ go = "go build $FILE_NAME$.go"
 cpp = "g++ $FILE_NAME$.cpp -o $FILE_NAME$"
 c = "gcc $FILE_NAME$.c -o $FILE_NAME$"
 sh = "$COPY$"
+
+[[jinja_static_html_template]]
+template = "public/jinja_templates/navbar_template.html"
+output = "public/jinja_generated_html/navbar_links.html"
+
+[[markdown_to_html]]

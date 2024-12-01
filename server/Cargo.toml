@@ -7,3 +7,4 @@ edition = "2021"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 httparse = "1.7"
+mime_guess = "=2.0.5"

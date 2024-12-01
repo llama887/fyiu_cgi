@@ -1,0 +1,35 @@
+{% set links = [
+{"href": "/static/index.html", "label": "home.sh", "details": false, "icon":"icons/bash.svg"},
+{"href": "/static/about.html", "label": "about.md", "details": false, "icon":"icons/markdown.svg"},
+{"href": "/static/contact.html", "label": "contact.css", "details": false, "icon":"icons/css.svg"},
+{"href": "", "label":"projects", "details": true, "icon":"icons/folder-markdown.svg"},
+{"href": "", "label": "posts", "details": true, "icon":"icons/folder-markdown.svg"},
+{"href": "https://github.com/llama887", "label": "github", "details": false}
+] %}
+
+{% for link in links %}
+{% if not link.details %}
+<a href="{{ link.href }}" class="flex items-center hover:bg-neutral-800 pl-6 pr-5" hx-get="{{ link.href }}"
+    hx-target="#main-content" hx-swap="innerHTML">
+    {% if link.icon %}
+    <img src="{{ link.icon }}" alt="{{ link.label }} icon" class="icon mr-2">
+    {% endif %}
+    {{ link.label }}
+</a>
+{% else %}
+<details>
+    <summary class="flex items-center hover:bg-neutral-800 pl-3 pr-5">
+        {% if link.icon %}
+        <img src="{{ link.icon }}" alt="{{ link.label }} icon" class="icon mr-2">
+        {% endif %}
+        <a href="{{ link.href }}" hx-get="{{ link.href }}" hx-target="#main-content" hx-swap="innerHTML">
+            {{ link.label }}
+        </a>
+    </summary>
+    <div class="flex flex-row justify-between hover:bg-neutral-800">
+        <div class="basis-3/12"></div>
+        <p class="basis-9/12">Coming Soon</p>
+    </div>
+</details>
+{% endif %}
+{% endfor %}
